@@ -1,26 +1,35 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { Manager } from "socket.io-client";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
+const manager = new Manager("ws://localhost:3001", {
+	autoConnect: false,
+});
+const socket = manager.socket("/");
+
+
+class App extends React.Component {
+	constructor(props: any) {
+		super(props);
+	}
+
+	render() {
+		return (
+			<div className="App">
+				Hello World!
+				<button onClick={this.connect}>Connect!</button>
+			</div>
+		)
+	}
+
+	private connect() {
+		manager.open((err) => {
+			if (err) {
+				console.log(err);
+			} else {
+				console.log("Socket is connected!");
+			}
+		});
+	}
 }
 
 export default App;
