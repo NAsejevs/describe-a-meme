@@ -10,6 +10,10 @@ const io = new Server(httpServer, {
 });
 
 io.on("connection", (socket) => {
+    socket.on("chatMessage", (message) => {
+        console.log("message");
+        io.emit("chatMessage", message);
+    });
     console.log("Someone connected...");
 });
 
