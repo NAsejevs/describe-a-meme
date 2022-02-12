@@ -9,12 +9,14 @@ const io = new Server(httpServer, {
     }
 });
 
+const messages: Array<string> = [];
+
 io.on("connection", (socket) => {
+    io.emit("messages", messages);
     socket.on("chatMessage", (message) => {
-        console.log("message");
+        messages.push(message);
         io.emit("chatMessage", message);
     });
-    console.log("Someone connected...");
 });
 
 
