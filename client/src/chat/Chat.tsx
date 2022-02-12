@@ -13,8 +13,11 @@ const socket = io("ws://localhost:3001", {
 });
 
 class Chat extends React.Component<{}, ChatState> {
+    private messageContainerRef;
+
     constructor(props: any) {
         super(props);
+        this.messageContainerRef = React.createRef<HTMLDivElement>();
 
         this.state = {
             connected: false,
@@ -38,12 +41,24 @@ class Chat extends React.Component<{}, ChatState> {
         socket.on("messages", (messages: Array<string>) => {
             this.setState({
                 chat: messages,
+            }, () => {
+                if (this.messageContainerRef.current) {
+                    this.messageContainerRef.current.scrollTop = 
+                        this.messageContainerRef.current.scrollHeight
+                        - this.messageContainerRef.current.clientHeight;
+                }
             });
         });
 
         socket.on("chatMessage", (message: string) => {
             this.setState({
                 chat: [...this.state.chat, message],
+            }, () => {
+                if (this.messageContainerRef.current) {
+                    this.messageContainerRef.current.scrollTop = 
+                        this.messageContainerRef.current.scrollHeight
+                        - this.messageContainerRef.current.clientHeight;
+                }
             });
         });
     }
@@ -59,7 +74,7 @@ class Chat extends React.Component<{}, ChatState> {
                     <button onClick={this.connect}>Connect!</button>
                     <button onClick={this.disconnect}>Disconnect!</button>
                 </div>
-                <div className="message-container">
+                <div className="message-container" ref={this.messageContainerRef}>
                     {
                         this.state.chat.map((message, index) => {
                             return (
@@ -95,6 +110,9 @@ class Chat extends React.Component<{}, ChatState> {
 
     disconnect = () => {
         socket.disconnect();
+        this.setState({
+            chat: [],
+        });
     }
 }
 

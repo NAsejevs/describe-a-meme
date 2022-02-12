@@ -9,13 +9,36 @@ const io = new Server(httpServer, {
     }
 });
 
-const messages: Array<string> = [];
+interface Room {
+    name: string;
+    messages: Array<string>;
+}
+
+const rooms: Array<Room> = [];
 
 io.on("connection", (socket) => {
-    io.emit("messages", messages);
+    socket.on("createRoom", (name) => {
+        rooms.push({
+            name: name,
+            messages: [],
+        });
+    });
+
+    socket.on("joinRoom", (name) => {
+        const roomIndex = rooms.findIndex((room) => room.name === name);
+
+        if (roomIndex !== -1) {
+            socket.join(name);
+            io.emit("messages", rooms[roomIndex].messages);
+        } else {
+            io.emit("error", "Room does not exist.");
+        }
+    });
+
     socket.on("chatMessage", (message) => {
-        messages.push(message);
-        io.emit("chatMessage", message);
+        // messages.push(message);
+        // socket.roo
+        io.to([...socket.rooms]).emit("chatMessage", message);
     });
 });
 

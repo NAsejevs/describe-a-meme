@@ -4,7 +4,7 @@
     "main": "index.js",
     "license": "MIT",
     "scripts": {
-        "watch": "yarn nodemon src/index.ts"
+        "start": "yarn nodemon src/index.ts"
     },
     "devDependencies": {
         "nodemon": "^2.0.15"

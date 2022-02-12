@@ -11,6 +11,7 @@
     width: 100%;
     position: absolute;
     bottom: 0;
+    height: 5%;
 }
 
 .send-input {
@@ -21,12 +22,11 @@
 .send-button {
     width: 30%;
     margin:0;
-    height: 5vh;
+    height: 100%;
 }
 
 .message-container {
     padding: 1%;
     overflow-y: scroll;
-    height: 100%;
-    padding-bottom: 5vh;
+    height: 90%;
 }
