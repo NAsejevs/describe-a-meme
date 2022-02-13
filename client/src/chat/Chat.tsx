@@ -1,5 +1,6 @@
 import React, { ChangeEvent } from "react";
 import { io } from "socket.io-client";
+import { getRandomEmoji } from "./utils";
 import "./chat.css";
 
 interface ChatState {
@@ -24,6 +25,7 @@ class Chat extends React.Component<{}, ChatState> {
             chat: [],
             input: "",
         }
+
 
         socket.on("connect", () => {
             console.log("connected");
@@ -61,6 +63,10 @@ class Chat extends React.Component<{}, ChatState> {
                 }
             });
         });
+
+        socket.on("error", (message) => {
+            alert(message);
+        });
     }
 
     componentDidMount() {
@@ -71,8 +77,10 @@ class Chat extends React.Component<{}, ChatState> {
         return (
             <div className="chat-container">
                 <div className="admin-container">
-                    <button onClick={this.connect}>Connect!</button>
-                    <button onClick={this.disconnect}>Disconnect!</button>
+                    <button onClick={this.connect}>Connect</button>
+                    <button onClick={this.disconnect}>Disconnect</button>
+                    <button onClick={this.createRoom}>Create room</button>
+                    <button onClick={this.joinRoom}>Join room</button>
                 </div>
                 <div className="message-container" ref={this.messageContainerRef}>
                     {
@@ -98,7 +106,7 @@ class Chat extends React.Component<{}, ChatState> {
     }
 
     send = () => {
-        socket.emit("chatMessage", `${socket.id}: ${this.state.input}`);
+        socket.emit("chatMessage", this.state.input);
         this.setState({
             input: "",
         })
@@ -112,6 +120,20 @@ class Chat extends React.Component<{}, ChatState> {
         socket.disconnect();
         this.setState({
             chat: [],
+        });
+    }
+
+    createRoom = () => {
+        const roomName = prompt("Enter room name to create", "room1") || "room1";
+        socket.emit("createRoom", roomName);
+    }
+
+    joinRoom = () => {
+        const room = prompt("Enter room name to join", "room1") || "room1";
+        const name = prompt("Enter username", getRandomEmoji()) || getRandomEmoji();
+        socket.emit("joinRoom", {
+            room: room,
+            name: name,
         });
     }
 }
