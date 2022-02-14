@@ -1,5 +1,39 @@
+#root {
+    height: 100%;
+    width: 100%;
+}
+
+html::before {
+    content: "";
+    width: 200%;
+    height: 200%;
+    position: absolute;
+    left: 0;
+    right: 0;
+    background-image: url(../public/light-rays.jpg);
+    background-size: 100%;
+    background-color: rgba(0, 0, 0, 0.1);
+    background-position: center;
+    opacity: 0.03;
+    z-index: -1;
+    animation-name: rotate;
+    animation-duration: 60s;
+    animation-iteration-count: infinite;
+    animation-timing-function: linear;
+}
+
+@keyframes rotate {
+    from {
+        transform: translate(-25%, -25%) rotate(0deg);
+    }
+    to {
+        transform: translate(-25%, -25%) rotate(360deg);
+    }
+  }
+
 html, body {
-    background-color: #292929;
+    overflow: hidden;
+    background-color: rgba(12, 156, 144, 0.7);
     height: 100%;
     width: 100%;
     margin: 0;

@@ -1,0 +1,9 @@
+.start-container {
+    width: 100%;
+    height: 100%;
+}
+
+.start-button {
+    margin-left: auto;
+    margin-right: auto;
+}

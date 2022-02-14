@@ -25,7 +25,7 @@ io.on("connection", (socket) => {
                 messages: [],
             });
         } else {
-            io.emit("error", "Room name is taken.");
+            socket.emit("error", "Room name is taken.");
         }
     });
 
@@ -34,19 +34,25 @@ io.on("connection", (socket) => {
 
         if (roomIndex !== -1) {
             socket.join(options.room);
-            io.to([...socket.rooms]).emit("messages", rooms[roomIndex].messages);
+            socket.emit("messages", rooms[roomIndex].messages);
 
             users.push({
                 id: socket.id,
                 name: options.name,
             })
         } else {
-            io.emit("error", "Room does not exist.");
+            socket.emit("error", "Room does not exist.");
         }
     });
 
     socket.on("chatMessage", (message) => {
         const userIndex = getUserIndexFromId(users, socket.id);
+
+        if (userIndex === -1) {
+            socket.emit("error", "User does not exist");
+            return;
+        }
+
         const parsedMessage = `${users[userIndex].name}: ${message}`;
 
         socket.rooms.forEach((name) => {
@@ -60,7 +66,6 @@ io.on("connection", (socket) => {
         io.to([...socket.rooms]).emit("chatMessage", parsedMessage);
     });
 });
-
 
 httpServer.listen(3001);
 console.log("Listening on localhost:3001!");

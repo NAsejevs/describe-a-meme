@@ -1,7 +1,8 @@
 import React, { ChangeEvent } from "react";
-import { io } from "socket.io-client";
 import { getRandomEmoji } from "./utils";
 import "./chat.css";
+import { StoreContext } from "../context";
+import { Store } from "../context/types";
 
 interface ChatState {
     connected: boolean;
@@ -9,16 +10,20 @@ interface ChatState {
     input: string;
 }
 
-const socket = io("ws://localhost:3001", {
-    autoConnect: false,
-});
+interface ChatProps {
+    id: string | null;
+}
 
-class Chat extends React.Component<{}, ChatState> {
+class Chat extends React.Component<ChatProps, ChatState> {
     private messageContainerRef;
+    private inputRef;
+    private socket;
 
-    constructor(props: any) {
+    constructor(props: any, context: Store) {
         super(props);
         this.messageContainerRef = React.createRef<HTMLDivElement>();
+        this.inputRef = React.createRef<HTMLInputElement>();
+        this.socket = context.socket;
 
         this.state = {
             connected: false,
@@ -27,20 +32,20 @@ class Chat extends React.Component<{}, ChatState> {
         }
 
 
-        socket.on("connect", () => {
+        this.socket.on("connect", () => {
             console.log("connected");
             this.setState({
                 connected: true,
             });
         });
 
-        socket.on("disconnect", () => {
+        this.socket.on("disconnect", () => {
             this.setState({
                 connected: false,
             });
         });
 
-        socket.on("messages", (messages: Array<string>) => {
+        this.socket.on("messages", (messages: Array<string>) => {
             this.setState({
                 chat: messages,
             }, () => {
@@ -52,7 +57,7 @@ class Chat extends React.Component<{}, ChatState> {
             });
         });
 
-        socket.on("chatMessage", (message: string) => {
+        this.socket.on("chatMessage", (message: string) => {
             this.setState({
                 chat: [...this.state.chat, message],
             }, () => {
@@ -64,9 +69,13 @@ class Chat extends React.Component<{}, ChatState> {
             });
         });
 
-        socket.on("error", (message) => {
+        this.socket.on("error", (message: string) => {
             alert(message);
         });
+
+        if (this.props.id) {
+            this.joinRoom(this.props.id)
+        }
     }
 
     componentDidMount() {
@@ -80,7 +89,7 @@ class Chat extends React.Component<{}, ChatState> {
                     <button onClick={this.connect}>Connect</button>
                     <button onClick={this.disconnect}>Disconnect</button>
                     <button onClick={this.createRoom}>Create room</button>
-                    <button onClick={this.joinRoom}>Join room</button>
+                    <button onClick={() => this.joinRoom()}>Join room</button>
                 </div>
                 <div className="message-container" ref={this.messageContainerRef}>
                     {
@@ -92,7 +101,7 @@ class Chat extends React.Component<{}, ChatState> {
                     }
                 </div>
                 <div className="input-container">
-                    <input className="send-input" onChange={this.onInput} value={this.state.input}/>
+                    <input className="send-input" onChange={this.onInput} value={this.state.input} ref={this.inputRef}/>
                     <button className="send-button" onClick={this.send} disabled={!this.state.connected}>Send!</button>
                 </div>
             </div>
@@ -106,36 +115,45 @@ class Chat extends React.Component<{}, ChatState> {
     }
 
     send = () => {
-        socket.emit("chatMessage", this.state.input);
+        this.socket.emit("chatMessage", this.state.input);
         this.setState({
             input: "",
-        })
+        });
+
+        this.inputRef.current?.focus();
     }
 
     connect = () => {
-        socket.connect();
+        this.socket.connect();
     }
 
     disconnect = () => {
-        socket.disconnect();
-        this.setState({
-            chat: [],
-        });
+        this.socket.disconnect();
     }
 
     createRoom = () => {
-        const roomName = prompt("Enter room name to create", "room1") || "room1";
-        socket.emit("createRoom", roomName);
+        const roomName = prompt("Enter room name to create", "room1");
+        if (!roomName) return;
+        
+        this.socket.emit("createRoom", roomName);
     }
 
-    joinRoom = () => {
-        const room = prompt("Enter room name to join", "room1") || "room1";
-        const name = prompt("Enter username", getRandomEmoji()) || getRandomEmoji();
-        socket.emit("joinRoom", {
+    joinRoom = (id: string | null = null) => {
+        let room = id;
+
+        if (!id) {
+            room = prompt("Enter room name to join", "room1");
+            if (!room) return;
+        }
+        const name = prompt("Enter username", getRandomEmoji());
+        if (!name) return;
+
+        this.socket.emit("joinRoom", {
             room: room,
             name: name,
         });
     }
 }
+Chat.contextType = StoreContext;
 
 export default Chat;
