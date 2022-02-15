@@ -3,10 +3,11 @@
     width: 100%;
 }
 
-html::before {
+.container::before {
+    display: block;
     content: "";
-    width: 200%;
-    height: 200%;
+    width: 100%;
+    height: 100%;
     position: absolute;
     left: 0;
     right: 0;
@@ -17,19 +18,20 @@ html::before {
     opacity: 0.03;
     z-index: -1;
     animation-name: rotate;
-    animation-duration: 60s;
+    animation-duration: 120s;
     animation-iteration-count: infinite;
     animation-timing-function: linear;
+    transform: scale(4);
 }
 
 @keyframes rotate {
     from {
-        transform: translate(-25%, -25%) rotate(0deg);
+        transform: rotate(0deg) scale(4);
     }
     to {
-        transform: translate(-25%, -25%) rotate(360deg);
+        transform: rotate(360deg) scale(4);
     }
-  }
+}
 
 html, body {
     overflow: hidden;

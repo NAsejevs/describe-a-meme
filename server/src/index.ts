@@ -15,31 +15,46 @@ const rooms: Array<Room> = [];
 const users: Array<User> = [];
 
 io.on("connection", (socket) => {
-    socket.on("createRoom", (name) => {
-        const roomIndex = getRoomIndexFromName(rooms, name);
+    socket.on("createRoom", (room) => {
+        const roomIndex = getRoomIndexFromName(rooms, room);
 
         if (roomIndex === -1) {
             rooms.push({
                 id: rooms.length,
-                name: name,
+                name: room,
                 messages: [],
             });
+            socket.emit("createRoomSuccess", room);
         } else {
-            socket.emit("error", "Room name is taken.");
+            socket.emit("error", "Room already exists.");
         }
     });
 
-    socket.on("joinRoom", (options: { room: string; name: string; }) => {
-        const roomIndex = getRoomIndexFromName(rooms, options.room);
+    socket.on("joinRoom", (room: string) => {
+        const roomIndex = getRoomIndexFromName(rooms, room);
 
         if (roomIndex !== -1) {
-            socket.join(options.room);
+            socket.join(room);
+            socket.emit("joinRoomSuccess", room);
             socket.emit("messages", rooms[roomIndex].messages);
+        } else {
+            socket.emit("error", "Room does not exist.");
+        }
+    });
 
+    socket.on("joinedRoom", (room: string) => {
+        const roomIndex = getRoomIndexFromName(rooms, room);
+
+        if (roomIndex !== -1) {
+            console.log("rooms[roomIndex].messages: ", rooms[roomIndex].messages);
+            socket.join(room);
+
+            rooms[roomIndex].messages.push(`${socket.id} has joined the room!`);
+            socket.emit("messages", rooms[roomIndex].messages);
             users.push({
                 id: socket.id,
-                name: options.name,
-            })
+                name: socket.id,
+            });
         } else {
             socket.emit("error", "Room does not exist.");
         }
@@ -49,7 +64,7 @@ io.on("connection", (socket) => {
         const userIndex = getUserIndexFromId(users, socket.id);
 
         if (userIndex === -1) {
-            socket.emit("error", "User does not exist");
+            socket.emit("error", "User does not exist.");
             return;
         }
 
