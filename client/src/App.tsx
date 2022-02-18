@@ -1,8 +1,9 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Button, Container, Modal } from "react-bootstrap";
+import { Button, Container, Modal, Row } from "react-bootstrap";
 import { Route, BrowserRouter, useParams, Routes } from "react-router-dom";
 import Chat from "./chat/Chat";
 import { StoreContext } from "./context";
+import Game from "./game/Game";
 import Start from "./start/Start";
 
 function App() {
@@ -24,7 +25,7 @@ function App() {
     }, []);
 
     return (
-        <Container className="d-flex flex-column h-100">
+        <Container className="d-flex flex-column h-100 container-sm">
             <Modal show={showError} onHide={() => setShowError(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>Error</Modal.Title>
@@ -49,7 +50,12 @@ function App() {
 function Room() {
     let { room } = useParams();
 
-    return <Chat room={room} />;
+    return (
+        <Row className="roomContainer h-100 flex-column flex-md-row">
+            <Game room={room} />
+            <Chat room={room} />
+        </Row>
+    );
 }
 
 export default App;

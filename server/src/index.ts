@@ -1,4 +1,5 @@
 import { createServer } from "http";
+import axios from "axios";
 import { Server } from "socket.io";
 import { getRoomIndexFromName, getUserIndexFromId } from "./utils";
 import { Room , User } from "./types";
@@ -10,6 +11,8 @@ const io = new Server(httpServer, {
         methods: ["GET", "POST"],
     }
 });
+
+const apiKey = "dkTRN5XKu4syueQPy7pM4TLkpPVEHk3O";
 
 const rooms: Array<Room> = [];
 const users: Array<User> = [];
@@ -34,26 +37,26 @@ io.on("connection", (socket) => {
         const roomIndex = getRoomIndexFromName(rooms, room);
 
         if (roomIndex !== -1) {
-            socket.join(room);
             socket.emit("joinRoomSuccess", room);
-            socket.emit("messages", rooms[roomIndex].messages);
         } else {
             socket.emit("error", "Room does not exist.");
         }
     });
 
-    socket.on("joinedRoom", (room: string) => {
-        const roomIndex = getRoomIndexFromName(rooms, room);
+    socket.on("joinedRoom", (options: { room: string, username: string, }) => {
+        const roomIndex = getRoomIndexFromName(rooms, options.room);
 
         if (roomIndex !== -1) {
-            console.log("rooms[roomIndex].messages: ", rooms[roomIndex].messages);
-            socket.join(room);
+            socket.join(options.room);
 
-            rooms[roomIndex].messages.push(`${socket.id} has joined the room!`);
-            socket.emit("messages", rooms[roomIndex].messages);
+            const parsedMessage = `${options.username} has joined the room!`;
+            rooms[roomIndex].messages.push(parsedMessage);
+            io.to(options.room).emit("chatMessage", parsedMessage);
+
+            // socket.emit("messages", rooms[roomIndex].messages);
             users.push({
                 id: socket.id,
-                name: socket.id,
+                name: options.username,
             });
         } else {
             socket.emit("error", "Room does not exist.");
@@ -79,6 +82,14 @@ io.on("connection", (socket) => {
         });
 
         io.to([...socket.rooms]).emit("chatMessage", parsedMessage);
+    });
+
+    socket.on("requestGif", () => {
+        axios.get(`https://api.giphy.com/v1/gifs/random?api_key=${apiKey}`)
+            .then((res) => {
+                io.to([...socket.rooms]).emit("receiveGif", res.data.data.images.original.url);
+            })
+            .catch((reason) => new Error(reason));
     });
 });
 

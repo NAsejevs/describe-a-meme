@@ -1,15 +1,28 @@
-import { ChangeEvent, createRef, useContext, useEffect, useState } from "react";
+import { FormEvent, ChangeEvent, createRef, useContext, useEffect, useState, useRef } from "react";
 import "./chat.css";
 import { StoreContext } from "../context";
 import { useNavigate } from "react-router-dom";
+import { Button, Col, Row, Form, Modal, Card, InputGroup } from "react-bootstrap";
+import { EmojiConvertor } from "emoji-js";
 
 interface ChatProps {
     room: string | undefined;
 }
 
+const emoji = new EmojiConvertor();
+
+emoji.replace_mode = 'unified';
+emoji.allow_native = true;
+
 function Chat(props: ChatProps) {
     const [messages, setMessages] = useState<string[]>([]);
-    const [input, setInput] = useState("");
+    const [chatInput, setChatInput] = useState("");
+
+    const usernameInputRef = useRef<HTMLInputElement>(null);
+    const [username, setUsername] = useState("nils");
+    const [showUsernamePrompt, setShowUsernamePrompt] = useState(true);
+    const [showValidation, setShowValidation] = useState(false);
+
     const inputRef = createRef<HTMLInputElement>();
     const messageContainerRef = createRef<HTMLDivElement>();
     const socket = useContext(StoreContext).socket;
@@ -28,8 +41,6 @@ function Chat(props: ChatProps) {
         socket.on("chatMessage", (message: string) => {
             setMessages((prevState) => [...prevState, message]);
         });
-
-        socket.emit("joinedRoom", props.room);
     }, []);
 
     useEffect(() => {
@@ -38,35 +49,111 @@ function Chat(props: ChatProps) {
                 messageContainerRef.current.scrollHeight
                 - messageContainerRef.current.clientHeight;
         }
-    }, [messages]);
+    }, [messages, messageContainerRef]);
 
-    const send = () => {
-        socket.emit("chatMessage", input);
-        
-        setInput("");
-        inputRef.current?.focus();
+    useEffect(() => {
+        if (usernameInputRef.current) {
+            usernameInputRef.current.focus();
+        }
+    }, [usernameInputRef]);
+
+    const send = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        if (form.checkValidity() !== false) {
+            socket.emit("chatMessage", emoji.replace_colons(chatInput));
+            
+            setChatInput("");
+            inputRef.current?.focus();
+            setShowValidation(false);
+        } else {
+            setShowValidation(true);
+        }
+
     }
 
-    const onInput = (event: ChangeEvent<HTMLInputElement>) => {
-        setInput(event.target.value);
+    const onChatInput = (event: ChangeEvent<HTMLInputElement>) => {
+        setChatInput(event.target.value);
+    }
+
+    const onUsernameInput = (event: ChangeEvent<HTMLInputElement>) => {
+        setUsername(event.target.value);
+    }
+
+    const joinRoom = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        const form = event.currentTarget;
+        if (form.checkValidity() !== false) {
+            socket.emit("joinedRoom", { room: props.room, username: username });
+            setShowUsernamePrompt(false);
+        } else {
+            setShowValidation(true);
+        }
+
     }
 
     return (
-        <div className="chat-container">
-            <div className="message-container" ref={messageContainerRef}>
-                {
-                    messages.map((message, index) => {
-                        return (
-                            <div key={index}>{message}</div>
-                        );
-                    })
-                }
-            </div>
-            <div className="input-container">
-                <input className="send-input" onChange={onInput} value={input} ref={inputRef}/>
-                <button className="send-button" onClick={send}>Send!</button>
-            </div>
-        </div>
+        <>
+            <Modal show={showUsernamePrompt} size="sm">
+                <Form noValidate validated={showValidation} onSubmit={joinRoom}>
+                    <Modal.Header>
+                        <Modal.Title>Enter username</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form.Group>
+                            <Form.Control
+                                className="text-center mb-2"
+                                required
+                                placeholder="Username"
+                                onInput={onUsernameInput}
+                                value={username}
+                                autoFocus
+                                ref={usernameInputRef}
+                            />
+                        </Form.Group>
+                        <Button variant="success" type="submit" className="w-100">
+                            Continue
+                        </Button>
+                    </Modal.Body>
+                </Form>
+            </Modal>
+
+            <Col xs={12} md={4} className="chatContainer my-4 flex-grow-0">
+                <Card className="h-100">
+                    <Row className="h-100">
+                        <Col className="messageContainer" ref={messageContainerRef}>
+                            {
+                                messages.map((message, index) => {
+                                    return (
+                                        <Row key={index}>
+                                            <Col className="mx-2">{message}</Col>
+                                        </Row>
+                                    );
+                                })
+                            }
+                        </Col>
+                    </Row>
+                    <Row>
+                        <Form noValidate validated={showValidation} onSubmit={send}>
+                            <InputGroup>
+                                <Form.Control
+                                    onInput={onChatInput}
+                                    value={chatInput}
+                                    ref={inputRef}
+                                    autoFocus
+                                    required
+                                />
+                                <Button variant="primary" type="submit">
+                                    Send
+                                </Button>
+                            </InputGroup>
+                        </Form>
+                    </Row>
+                </Card>
+            </Col>
+        </>
     );
 }
 

@@ -1,32 +1,16 @@
-.chat-container {
-    position: absolute;
-    right: 0;
-    width: 30%;
+.messageContainer {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
     height: 100%;
-    background-color: wheat;
-}
-
-.input-container {
-    display: flex;
-    width: 100%;
+    overflow: scroll;
     position: absolute;
-    bottom: 0;
-    height: 5%;
+    padding-bottom: 3em;
 }
 
-.send-input {
-    width: 70%;
-    margin:0;
+.messageContainer::-webkit-scrollbar {
+    display: none;
 }
 
-.send-button {
-    width: 30%;
-    margin:0;
-    height: 100%;
-}
-
-.message-container {
-    padding: 1%;
-    overflow-y: scroll;
-    height: 90%;
+.chatContainer {
+    min-height: 20vh;
 }
