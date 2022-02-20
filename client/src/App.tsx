@@ -1,15 +1,14 @@
 import React, { useState, useContext, useEffect } from "react";
-import { Button, Container, Modal, Row } from "react-bootstrap";
-import { Route, BrowserRouter, useParams, Routes } from "react-router-dom";
-import Chat from "./chat/Chat";
+import { Button, Container, Modal } from "react-bootstrap";
+import { Route, BrowserRouter, Routes } from "react-router-dom";
 import { StoreContext } from "./context";
-import Game from "./game/Game";
 import Start from "./start/Start";
+import Room from "./room/Room";
 
 function App() {
     const [showError, setShowError] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-    const socket = useContext(StoreContext).socket;
+    const { socket } = useContext(StoreContext);
 
     useEffect(() => {
         socket.connect();
@@ -25,7 +24,7 @@ function App() {
     }, []);
 
     return (
-        <Container className="d-flex flex-column h-100 container-sm">
+        <Container fluid="lg" className="app d-flex flex-column h-100">
             <Modal show={showError} onHide={() => setShowError(false)}>
                 <Modal.Header closeButton>
                     <Modal.Title>Error</Modal.Title>
@@ -44,17 +43,6 @@ function App() {
                 </Routes>
             </BrowserRouter>
         </Container>
-    );
-}
-
-function Room() {
-    let { room } = useParams();
-
-    return (
-        <Row className="roomContainer h-100 flex-column flex-md-row">
-            <Game room={room} />
-            <Chat room={room} />
-        </Row>
     );
 }
 

@@ -7,15 +7,16 @@ import "./start.css";
 function Start() {
     const [roomNameInput, setRoomNameInput] = useState("");
     const roomNameRef = createRef<HTMLInputElement>();
-    const socket = useContext(StoreContext).socket;
+    const { socket, setHost } = useContext(StoreContext);
     const navigate = useNavigate();
 
     useEffect(() => {
-        socket.on("joinRoomSuccess", (room: string) => {
+        socket.on("roomExists", (room: string) => {
             navigate(`/${room}`);
         });
 
-        socket.on("createRoomSuccess", (room: string) => {
+        socket.on("roomCreated", (room: string) => {
+            setHost(true);
             navigate(`/${room}`);
         });
     }, []);
@@ -29,9 +30,9 @@ function Start() {
         socket.emit("createRoom", room);
     }
 
-    const joinRoom = (event: any, room: string) => {
+    const checkRoomExists = (event: any, room: string) => {
         event.preventDefault();
-        socket.emit("joinRoom", room);
+        socket.emit("checkRoomExists", room);
     }
 
     return (
@@ -55,7 +56,7 @@ function Start() {
                         <Button
                             type="submit"
                             className="btn-primary"
-                            onClick={(event) => joinRoom(event, roomNameInput)}
+                            onClick={(event) => checkRoomExists(event, roomNameInput)}
                             disabled={roomNameInput.length <= 0}
                         >
                             Join existing game

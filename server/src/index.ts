@@ -1,13 +1,14 @@
 import { createServer } from "http";
 import axios from "axios";
 import { Server } from "socket.io";
-import { getRoomIndexFromName, getUserIndexFromId } from "./utils";
+import { getRoomIndexFromName, getUserIndexFromId, isRoomHost } from "./utils";
 import { Room , User } from "./types";
+import crypto from "crypto";
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
     cors: {
-        origin: "http://localhost:3000",
+        origin: "*",
         methods: ["GET", "POST"],
     }
 });
@@ -27,23 +28,23 @@ io.on("connection", (socket) => {
                 name: room,
                 messages: [],
             });
-            socket.emit("createRoomSuccess", room);
+            socket.emit("roomCreated", room);
         } else {
             socket.emit("error", "Room already exists.");
         }
     });
 
-    socket.on("joinRoom", (room: string) => {
+    socket.on("checkRoomExists", (room: string) => {
         const roomIndex = getRoomIndexFromName(rooms, room);
 
         if (roomIndex !== -1) {
-            socket.emit("joinRoomSuccess", room);
+            socket.emit("roomExists", room);
         } else {
             socket.emit("error", "Room does not exist.");
         }
     });
 
-    socket.on("joinedRoom", (options: { room: string, username: string, }) => {
+    socket.on("joinRoom", (options: { room: string, username: string, }) => {
         const roomIndex = getRoomIndexFromName(rooms, options.room);
 
         if (roomIndex !== -1) {
@@ -53,18 +54,29 @@ io.on("connection", (socket) => {
             rooms[roomIndex].messages.push(parsedMessage);
             io.to(options.room).emit("chatMessage", parsedMessage);
 
-            // socket.emit("messages", rooms[roomIndex].messages);
-            users.push({
-                id: socket.id,
+            // socket.emit("messages", rooms[roomIndex].messages); // Provide chat history to new users
+
+            const user: User = {
+                id: crypto.randomBytes(4).toString("hex"),
                 name: options.username,
-            });
+            }
+
+            if (!rooms[roomIndex].host) {
+                rooms[roomIndex].host = user.id;
+            }
+
+            socket.data.user = user;
+
+            users.push(user);
+
+            socket.emit("roomJoined", user.id);
         } else {
             socket.emit("error", "Room does not exist.");
         }
     });
 
     socket.on("chatMessage", (message) => {
-        const userIndex = getUserIndexFromId(users, socket.id);
+        const userIndex = getUserIndexFromId(users, socket.data.user.id);
 
         if (userIndex === -1) {
             socket.emit("error", "User does not exist.");
@@ -85,7 +97,7 @@ io.on("connection", (socket) => {
     });
 
     socket.on("requestGif", () => {
-        axios.get(`https://api.giphy.com/v1/gifs/random?api_key=${apiKey}`)
+        axios.get(`https://api.giphy.com/v1/gifs/random?api_key=${apiKey}&tag=racist`)
             .then((res) => {
                 io.to([...socket.rooms]).emit("receiveGif", res.data.data.images.original.url);
             })

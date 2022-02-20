@@ -3,8 +3,11 @@ import "./index.css";
 import App from "./App";
 import { StoreContext, defaultStore } from "./context";
 
+const store = defaultStore;
+store.setHost = (isHost) => store.isHost = isHost;
+
 ReactDOM.render(
-    <StoreContext.Provider value={defaultStore}>
+    <StoreContext.Provider value={store}>
         <App />
     </StoreContext.Provider>,
     document.getElementById("root")
