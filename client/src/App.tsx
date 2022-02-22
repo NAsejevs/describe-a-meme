@@ -19,6 +19,7 @@ function App() {
         });
 
         return () => {
+            socket.off("error");
             socket.disconnect();
         };
     }, []);

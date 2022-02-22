@@ -1,6 +1,7 @@
 export interface Room {
-    id: number;
+    id: string;
     name: string;
+    users: User[];
     messages: Array<string>;
     host?: string;
 }
@@ -8,4 +9,5 @@ export interface Room {
 export interface User {
     id: string;
     name: string;
+    room: string;
 }

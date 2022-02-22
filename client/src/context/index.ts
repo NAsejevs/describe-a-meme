@@ -7,7 +7,7 @@ export const defaultStore: Store = {
         autoConnect: false,
     }),
     isHost: false,
-    setHost: (isHost) => undefined,
+    setIsHost: (isHost) => undefined,
 };
 
 export const StoreContext = React.createContext(defaultStore);

@@ -16,19 +16,34 @@ const io = new Server(httpServer, {
 const apiKey = "dkTRN5XKu4syueQPy7pM4TLkpPVEHk3O";
 
 const rooms: Array<Room> = [];
-const users: Array<User> = [];
 
 io.on("connection", (socket) => {
+    socket.on("disconnect", () => {
+        if (!socket.data.user) return;
+
+        const { room, name } = socket.data.user;
+        const roomIndex = getRoomIndexFromName(rooms, room);
+
+        if (roomIndex !== -1) {
+            const parsedMessage = `${name} has left the room.`;
+            rooms[roomIndex].messages.push(parsedMessage);
+            io.to(socket.data.room).emit("chatMessage", parsedMessage);
+        }
+    });
+
     socket.on("createRoom", (room) => {
         const roomIndex = getRoomIndexFromName(rooms, room);
 
         if (roomIndex === -1) {
-            rooms.push({
-                id: rooms.length,
+            const newRoom = {
+                id: crypto.randomBytes(4).toString("hex"),
                 name: room,
+                users: [],
                 messages: [],
-            });
-            socket.emit("roomCreated", room);
+            };
+
+            rooms.push(newRoom);
+            socket.emit("roomCreated", { room: room, roomId: newRoom.id });
         } else {
             socket.emit("error", "Room already exists.");
         }
@@ -38,66 +53,88 @@ io.on("connection", (socket) => {
         const roomIndex = getRoomIndexFromName(rooms, room);
 
         if (roomIndex !== -1) {
-            socket.emit("roomExists", room);
+            socket.emit("roomExists", { room: room, roomId: rooms[roomIndex].id });
         } else {
             socket.emit("error", "Room does not exist.");
         }
     });
 
-    socket.on("joinRoom", (options: { room: string, username: string, }) => {
-        const roomIndex = getRoomIndexFromName(rooms, options.room);
+    socket.on("joinRoom", (options: { room: string, name: string, id?: string }) => {
+        const { room, name, id } = options;
+        const roomIndex = getRoomIndexFromName(rooms, room);
 
         if (roomIndex !== -1) {
-            socket.join(options.room);
-
-            const parsedMessage = `${options.username} has joined the room!`;
-            rooms[roomIndex].messages.push(parsedMessage);
-            io.to(options.room).emit("chatMessage", parsedMessage);
-
-            // socket.emit("messages", rooms[roomIndex].messages); // Provide chat history to new users
-
-            const user: User = {
+            let user: User = {
                 id: crypto.randomBytes(4).toString("hex"),
-                name: options.username,
+                name: name,
+                room: room,
             }
 
+            if (id) {
+                const userIndex = getUserIndexFromId(rooms[roomIndex].users, id);
+
+                if (userIndex === -1) {
+                    // User does not exist, request user to enter name
+                    socket.emit("requestName");
+                    return;
+                } else {
+                    user = {
+                        ...user,
+                        id: rooms[roomIndex].users[userIndex].id,
+                        name: rooms[roomIndex].users[userIndex].name,
+                    }
+                }
+            }
+
+            socket.join(room);
+
+            const parsedMessage = `${user.name} has joined the room!`;
+            rooms[roomIndex].messages.push(parsedMessage);
+            io.to(room).emit("chatMessage", parsedMessage);
+            socket.emit("messages", rooms[roomIndex].messages); // Provide chat history to new users
+
+            rooms[roomIndex].users.push(user);
+            socket.data.user = user;
+
             if (!rooms[roomIndex].host) {
+                console.log(`${user.name} is now host of ${room}`);
                 rooms[roomIndex].host = user.id;
             }
 
-            socket.data.user = user;
-
-            users.push(user);
-
-            socket.emit("roomJoined", user.id);
+            socket.emit("roomJoined", { id: user.id, name: user.name, isHost: rooms[roomIndex].host === user.id });
         } else {
             socket.emit("error", "Room does not exist.");
         }
     });
 
-    socket.on("chatMessage", (message) => {
-        const userIndex = getUserIndexFromId(users, socket.data.user.id);
+    socket.on("chatMessage", (options: { room: string; message: string; }) => {
+        const { room, message } = options;
+        const roomIndex = getRoomIndexFromName(rooms, room);
 
-        if (userIndex === -1) {
-            socket.emit("error", "User does not exist.");
-            return;
-        }
-
-        const parsedMessage = `${users[userIndex].name}: ${message}`;
-
-        socket.rooms.forEach((name) => {
-            const roomIndex = getRoomIndexFromName(rooms, name);
-
-            if (roomIndex !== -1) {
-                rooms[roomIndex].messages.push(parsedMessage);
+        if (roomIndex !== -1) {
+            const userIndex = getUserIndexFromId(rooms[roomIndex].users, socket.data.user.id);
+    
+            if (userIndex === -1) {
+                socket.emit("error", "User does not exist.");
+                return;
             }
-        });
-
-        io.to([...socket.rooms]).emit("chatMessage", parsedMessage);
+    
+            const parsedMessage = `${rooms[roomIndex].users[userIndex].name}: ${message}`;
+    
+            socket.rooms.forEach((name) => {
+                const roomIndex = getRoomIndexFromName(rooms, name);
+    
+                if (roomIndex !== -1) {
+                    rooms[roomIndex].messages.push(parsedMessage);
+                }
+            });
+    
+            io.to([...socket.rooms]).emit("chatMessage", parsedMessage);
+        }
     });
 
     socket.on("requestGif", () => {
-        axios.get(`https://api.giphy.com/v1/gifs/random?api_key=${apiKey}&tag=racist`)
+        axios.get(`https://api.giphy.com/v1/gifs/random?api_key=${apiKey}&tag=funny`)
             .then((res) => {
                 io.to([...socket.rooms]).emit("receiveGif", res.data.data.images.original.url);
             })

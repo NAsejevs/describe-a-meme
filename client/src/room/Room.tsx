@@ -1,23 +1,27 @@
 import { ChangeEvent, FormEvent, useContext, useEffect, useRef, useState } from "react";
 import { Button, Form, Modal, Row } from "react-bootstrap";
 import { useCookies } from "react-cookie";
-import { useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { StoreContext } from "../context";
 import Chat from "./chat/Chat";
 import Game from "./game/Game";
+import { LocationState } from "./types";
 
 function Room() {
-    const [username, setUsername] = useState("nils");
-    const [showUsernamePrompt, setShowUsernamePrompt] = useState(true);
+    const [name, setName] = useState("nils");
+    const [showNamePrompt, setShowNamePrompt] = useState(false);
     const [showValidation, setShowValidation] = useState(false);
-    const usernameInputRef = useRef<HTMLInputElement>(null);
-    const [cookies, setCookie, removeCookie] = useCookies(["user"]);
-
+    const nameInputRef = useRef<HTMLInputElement>(null);
+    const { socket, setIsHost } = useContext(StoreContext);
+    
+    const navigate = useNavigate();
+    const [cookies, setCookie, removeCookie] = useCookies();
     const { room } = useParams();
-    const { socket } = useContext(StoreContext);
+    const locationState = useLocation().state as LocationState | null;
+    const [ roomId, setRoomId ] = useState(locationState?.roomId);
 
-    const onUsernameInput = (event: ChangeEvent<HTMLInputElement>) => {
-        setUsername(event.target.value);
+    const onNameInput = (event: ChangeEvent<HTMLInputElement>) => {
+        setName(event.target.value);
     }
 
     const joinRoom = (event: FormEvent<HTMLFormElement>) => {
@@ -25,46 +29,82 @@ function Room() {
 
         const form = event.currentTarget;
         if (form.checkValidity() !== false) {
-            socket.emit("joinRoom", { room: room, username: username });
-            setShowUsernamePrompt(false);
+            socket.emit("joinRoom", { room: room, name: name });
+            setShowNamePrompt(false);
         } else {
             setShowValidation(true);
         }
     }
 
     useEffect(() => {
-        socket.on("roomJoined", (id: string) => {
-            setCookie("user", {
-                id: id,
-                username: username,
+        if (!room) {
+            navigate("/");
+            return;
+        }
+
+        if (!roomId) {
+            socket.on("roomExists", (options: { room: string; roomId: string; }) => {
+                setRoomId(options.roomId);
             });
-            console.log("id: ", id);
+
+            socket.emit("checkRoomExists", room);
+            return () => {
+                socket.off("roomExists");
+            };
+        }
+
+        socket.on("roomJoined", (options: { id: string; name: string; isHost: boolean }) => {
+            setCookie(roomId, {
+                id: options.id,
+                name: options.name,
+                room: room,
+            });
+
+            setIsHost(options.isHost);
         });
-    }, []);
+
+        socket.on("requestName", () => {
+            setShowNamePrompt(true);
+        });
+
+        if (
+            cookies[roomId]
+            && cookies[roomId].room === room
+        ) {
+            socket.emit("joinRoom", { room: room, name: cookies[roomId].name, id: cookies[roomId].id });
+        } else {
+            setShowNamePrompt(true);
+        }
+
+        return () => {
+            socket.off("roomJoined");
+            socket.off("requestName");
+        }
+    }, [roomId]);
 
     useEffect(() => {
-        if (usernameInputRef.current) {
-            usernameInputRef.current.focus();
+        if (nameInputRef.current) {
+            nameInputRef.current.focus();
         }
-    }, [usernameInputRef]);
+    }, [nameInputRef]);
 
     return (
         <>
-            <Modal show={showUsernamePrompt} size="sm">
+            <Modal show={showNamePrompt} size="sm">
                 <Form noValidate validated={showValidation} onSubmit={joinRoom}>
                     <Modal.Header>
-                        <Modal.Title>Enter username</Modal.Title>
+                        <Modal.Title>Enter name</Modal.Title>
                     </Modal.Header>
                     <Modal.Body>
                         <Form.Group>
                             <Form.Control
                                 className="text-center mb-2"
                                 required
-                                placeholder="Username"
-                                onInput={onUsernameInput}
-                                value={username}
+                                placeholder="Name"
+                                onInput={onNameInput}
+                                value={name}
                                 autoFocus
-                                ref={usernameInputRef}
+                                ref={nameInputRef}
                             />
                         </Form.Group>
                         <Button variant="success" type="submit" className="w-100">
@@ -74,8 +114,12 @@ function Room() {
                 </Form>
             </Modal>
             <Row className="roomContainer h-100 flex-column flex-md-row">
-                <Game room={room} />
-                <Chat room={room} />
+                {
+                    room && roomId && <>
+                        <Game room={room} roomId={roomId} />
+                        <Chat room={room} roomId={roomId} />
+                    </>
+                }
             </Row>
         </>
     );

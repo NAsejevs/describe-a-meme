@@ -1,12 +1,13 @@
-import { FormEvent, ChangeEvent, createRef, useContext, useEffect, useState, useRef } from "react";
+import { FormEvent, ChangeEvent, createRef, useContext, useEffect, useState } from "react";
 import "./chat.css";
 import { StoreContext } from "../../context";
 import { useNavigate } from "react-router-dom";
-import { Button, Col, Row, Form, Modal, Card, InputGroup } from "react-bootstrap";
+import { Button, Col, Row, Form, Card, InputGroup } from "react-bootstrap";
 import { EmojiConvertor } from "emoji-js";
 
 interface ChatProps {
-    room: string | undefined;
+    room: string;
+    roomId: string;
 }
 
 const emoji = new EmojiConvertor();
@@ -22,14 +23,8 @@ function Chat(props: ChatProps) {
     const inputRef = createRef<HTMLInputElement>();
     const messageContainerRef = createRef<HTMLDivElement>();
     const { socket } = useContext(StoreContext);
-    const navigate = useNavigate();
 
     useEffect(() => {
-        if (!props.room) {
-            navigate("/");
-            return;
-        }
-
         socket.on("messages", (messages: string[]) => {
             setMessages(messages);
         });
@@ -37,6 +32,11 @@ function Chat(props: ChatProps) {
         socket.on("chatMessage", (message: string) => {
             setMessages((prevState) => [...prevState, message]);
         });
+
+        return () => {
+            socket.off("messages");
+            socket.off("chatMessage");
+        }
     }, []);
 
     useEffect(() => {
@@ -52,7 +52,7 @@ function Chat(props: ChatProps) {
 
         const form = event.currentTarget;
         if (form.checkValidity() !== false) {
-            socket.emit("chatMessage", emoji.replace_colons(chatInput));
+            socket.emit("chatMessage", { room: props.room, message: emoji.replace_colons(chatInput) });
             
             setChatInput("");
             inputRef.current?.focus();

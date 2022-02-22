@@ -4,7 +4,7 @@ import App from "./App";
 import { StoreContext, defaultStore } from "./context";
 
 const store = defaultStore;
-store.setHost = (isHost) => store.isHost = isHost;
+store.setIsHost = (isHost) => store.isHost = isHost;
 
 ReactDOM.render(
     <StoreContext.Provider value={store}>

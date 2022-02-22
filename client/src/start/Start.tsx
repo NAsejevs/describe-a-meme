@@ -2,23 +2,39 @@ import { ChangeEvent, createRef, useContext, useEffect, useState } from "react";
 import { Col, Row, Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
 import { StoreContext } from "../context";
+import { LocationState } from "../room/types";
 import "./start.css";
 
 function Start() {
     const [roomNameInput, setRoomNameInput] = useState("");
     const roomNameRef = createRef<HTMLInputElement>();
-    const { socket, setHost } = useContext(StoreContext);
+    const { socket } = useContext(StoreContext);
     const navigate = useNavigate();
 
     useEffect(() => {
-        socket.on("roomExists", (room: string) => {
-            navigate(`/${room}`);
+        socket.on("roomExists", (options: { room: string; roomId: string; }) => {
+            const { room, roomId } = options;
+            navigate(`/${room}`, {
+                state: {
+                    roomId: roomId
+                } as LocationState
+            });
         });
 
-        socket.on("roomCreated", (room: string) => {
-            setHost(true);
-            navigate(`/${room}`);
+        socket.on("roomCreated", (options: { room: string; roomId: string; }) => {
+            const { room, roomId } = options;
+
+            navigate(`/${room}`, {
+                state: {
+                    roomId: roomId
+                } as LocationState
+            });
         });
+
+        return () => {
+            socket.off("roomExists");
+            socket.off("roomCreated");
+        }
     }, []);
 
     const onRoomNameInput = (event: ChangeEvent<HTMLInputElement>) => {

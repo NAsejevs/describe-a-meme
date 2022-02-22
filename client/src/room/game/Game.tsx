@@ -5,29 +5,30 @@ import { Card, Col, Button, Image, Row } from "react-bootstrap";
 import "./game.css";
 
 interface GameProps {
-    room: string | undefined;
+    room: string;
+    roomId: string;
 }
 
 function Game(props: GameProps) {
     const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
 
     const { socket, isHost } = useContext(StoreContext);
-    const navigate = useNavigate();
 
     useEffect(() => {
-        if (!props.room) {
-            navigate("/");
-            return;
-        }
-
         socket.on("receiveGif", (url: string) => {
             setImageUrl(url);
         });
+
+        return () => {
+            socket.off("receiveGif");
+        }
     }, []);
 
     const requestGif = () => {
         socket.emit("requestGif");
     }
+
+    console.log("isHost: ", isHost);
 
     return (
         <Col sm={12} md={8} className="mt-4 my-md-4 flex-grow-1">
