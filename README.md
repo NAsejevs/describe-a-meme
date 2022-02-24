@@ -13,7 +13,7 @@ Stack:
 - Typescript
 
 Start the server in /server with
-## yarn start
+### yarn start
 
 Start the client in /client with
-## yarn start
+### yarn start
