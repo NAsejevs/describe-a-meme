@@ -2,7 +2,7 @@ import { ChangeEvent, FormEvent, useContext, useEffect, useRef, useState } from 
 import { Button, Form, Modal, Row } from "react-bootstrap";
 import { useCookies } from "react-cookie";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { StoreContext } from "../context";
+import { ActionTypes, StateContext } from "../context";
 import Chat from "./chat/Chat";
 import Game from "./game/Game";
 import { LocationState } from "./types";
@@ -12,55 +12,41 @@ function Room() {
     const [showNamePrompt, setShowNamePrompt] = useState(false);
     const [showValidation, setShowValidation] = useState(false);
     const nameInputRef = useRef<HTMLInputElement>(null);
-    const { socket, setIsHost } = useContext(StoreContext);
+    const { socket, dispatch } = useContext(StateContext);
     
     const navigate = useNavigate();
     const [cookies, setCookie, removeCookie] = useCookies();
-    const { room } = useParams();
+    const { roomName } = useParams();
     const locationState = useLocation().state as LocationState | null;
     const [ roomId, setRoomId ] = useState(locationState?.roomId);
 
-    const onNameInput = (event: ChangeEvent<HTMLInputElement>) => {
-        setName(event.target.value);
-    }
-
-    const joinRoom = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        const form = event.currentTarget;
-        if (form.checkValidity() !== false) {
-            socket.emit("joinRoom", { room: room, name: name });
-            setShowNamePrompt(false);
-        } else {
-            setShowValidation(true);
-        }
-    }
-
     useEffect(() => {
-        if (!room) {
+        if (!roomName) {
             navigate("/");
             return;
         }
 
         if (!roomId) {
-            socket.on("roomExists", (options: { room: string; roomId: string; }) => {
+            socket.on("roomExists", (options) => {
                 setRoomId(options.roomId);
             });
 
-            socket.emit("checkRoomExists", room);
+            socket.emit("checkRoomExists", roomName);
             return () => {
                 socket.off("roomExists");
             };
         }
 
-        socket.on("roomJoined", (options: { id: string; name: string; isHost: boolean }) => {
+        socket.on("roomJoined", (payload) => {
+            const { userId, userName, isHost } = payload;
+
             setCookie(roomId, {
-                id: options.id,
-                name: options.name,
-                room: room,
+                userId: userId,
+                userName: userName,
+                roomName: roomName,
             });
 
-            setIsHost(options.isHost);
+            dispatch({ type: ActionTypes.SET_IS_HOST, payload: isHost });
         });
 
         socket.on("requestName", () => {
@@ -69,9 +55,9 @@ function Room() {
 
         if (
             cookies[roomId]
-            && cookies[roomId].room === room
+            && cookies[roomId].roomName === roomName
         ) {
-            socket.emit("joinRoom", { room: room, name: cookies[roomId].name, id: cookies[roomId].id });
+            socket.emit("joinRoom", { roomName: roomName, userName: cookies[roomId].userName, userId: cookies[roomId].userId });
         } else {
             setShowNamePrompt(true);
         }
@@ -83,10 +69,26 @@ function Room() {
     }, [roomId]);
 
     useEffect(() => {
-        if (nameInputRef.current) {
-            nameInputRef.current.focus();
-        }
+        nameInputRef.current?.focus();
     }, [nameInputRef]);
+
+    const onNameInput = (event: ChangeEvent<HTMLInputElement>) => {
+        setName(event.target.value);
+    }
+
+    const joinRoom = (event: FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+
+        if(!roomName) return;
+
+        const form = event.currentTarget;
+        if (form.checkValidity() !== false) {
+            socket.emit("joinRoom", { roomName: roomName, userName: name });
+            setShowNamePrompt(false);
+        } else {
+            setShowValidation(true);
+        }
+    }
 
     return (
         <>
@@ -115,9 +117,9 @@ function Room() {
             </Modal>
             <Row className="roomContainer h-100 flex-column flex-md-row">
                 {
-                    room && roomId && <>
-                        <Game room={room} roomId={roomId} />
-                        <Chat room={room} roomId={roomId} />
+                    roomName && roomId && <>
+                        <Game roomName={roomName} roomId={roomId} />
+                        <Chat roomName={roomName} roomId={roomId} />
                     </>
                 }
             </Row>

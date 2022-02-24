@@ -1,14 +1,11 @@
 import ReactDOM from "react-dom";
 import "./index.css";
 import App from "./App";
-import { StoreContext, defaultStore } from "./context";
-
-const store = defaultStore;
-store.setIsHost = (isHost) => store.isHost = isHost;
+import { ContextWrapper } from "./context";
 
 ReactDOM.render(
-    <StoreContext.Provider value={store}>
+    <ContextWrapper>
         <App />
-    </StoreContext.Provider>,
+    </ContextWrapper>,
     document.getElementById("root")
 );

@@ -1,14 +1,14 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Button, Container, Modal } from "react-bootstrap";
 import { Route, BrowserRouter, Routes } from "react-router-dom";
-import { StoreContext } from "./context";
+import { StateContext } from "./context";
 import Start from "./start/Start";
 import Room from "./room/Room";
 
 function App() {
     const [showError, setShowError] = useState(false);
     const [errorMessage, setErrorMessage] = useState("");
-    const { socket } = useContext(StoreContext);
+    const { socket } = useContext(StateContext);
 
     useEffect(() => {
         socket.connect();
@@ -40,7 +40,7 @@ function App() {
             <BrowserRouter>
                 <Routes>
                     <Route path="/" element={<Start />}/>
-                    <Route path="/:room" element={<Room />}/>
+                    <Route path="/:roomName" element={<Room />}/>
                 </Routes>
             </BrowserRouter>
         </Container>
