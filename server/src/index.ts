@@ -1,7 +1,7 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { generateGifUrl, getRoomIndexFromName, getUserIndexFromId, isRoomHost } from "./utils";
-import { ClientToServerEvents, GameState, Room , ServerToClientEvents, SocketData, User } from "./types";
+import { ClientToServerEvents, GameState, Room , ServerToClientEvents, SocketData, User, Vote } from "./types";
 import crypto from "crypto";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 
@@ -40,13 +40,17 @@ io.on("connection", (socket) => {
                 users: [],
                 messages: [],
                 descriptions: [],
+                describeTime: 10000,
+                votes: [],
+                votingTime: 10000,
+                reviewTime: 10000,
                 gameState: GameState.Idle,
             };
 
             rooms.push(newRoom);
             socket.emit("roomCreated", { roomName: roomName, roomId: newRoom.id });
         } else {
-            socket.emit("error", "Room already exists.");
+            socket.emit("error", { code: 0, message: "Room already exists." });
         }
     });
 
@@ -56,7 +60,7 @@ io.on("connection", (socket) => {
         if (roomIndex !== -1) {
             socket.emit("roomExists", { roomName: roomName, roomId: rooms[roomIndex].id });
         } else {
-            socket.emit("error", "Room does not exist.");
+            socket.emit("error", { code: 1, message: "Room does not exist." });
         }
     });
 
@@ -73,7 +77,7 @@ io.on("connection", (socket) => {
 
             if (userId) {
                 const userIndex = getUserIndexFromId(rooms[roomIndex].users, userId);
-
+                
                 if (userIndex === -1) {
                     // User does not exist, request user to enter name
                     socket.emit("requestName"); 
@@ -92,7 +96,6 @@ io.on("connection", (socket) => {
             socket.data.user = rooms[roomIndex].users[userIndex];
 
             if (!rooms[roomIndex].host) {
-                console.log(`${user.name} is now host of ${roomName}`);
                 rooms[roomIndex].host = user.id;
             }
 
@@ -109,7 +112,7 @@ io.on("connection", (socket) => {
             rooms[roomIndex].messages.push(parsedMessage);
             io.to(roomName).emit("chatMessage", parsedMessage);
         } else {
-            socket.emit("error", "Room does not exist.");
+            socket.emit("error", { code: 1, message: "Room does not exist." });
         }
     });
 
@@ -124,7 +127,7 @@ io.on("connection", (socket) => {
             const userIndex = getUserIndexFromId(rooms[roomIndex].users, id);
     
             if (userIndex === -1) {
-                socket.emit("error", "User does not exist.");
+                socket.emit("error", { code: 0, message: "User does not exist." });
                 return;
             }
     
@@ -164,10 +167,44 @@ io.on("connection", (socket) => {
         const roomIndex = getRoomIndexFromName(rooms, roomName);
 
         if (roomIndex !== -1) {
+            let timeout = rooms[roomIndex].describingTimeout;
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+            timeout = rooms[roomIndex].votingTimeout;
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+            timeout = rooms[roomIndex].reviewTimeout;
+            if (timeout) {
+                clearTimeout(timeout);
+            }
+
             switch(gameState) {
                 case GameState.Describe: {
                     if (isRoomHost(rooms, roomName, id)) {
                         rooms[roomIndex].gameState = gameState;
+                        rooms[roomIndex].describingTimeout = setTimeout(() => {
+                            io.to(roomName).emit("gameState", {
+                                gameState: GameState.Vote,
+                            });
+
+                            rooms[roomIndex].votingTimeout = setTimeout(() => {
+                                io.to(roomName).emit("gameState", {
+                                    gameState: GameState.Review,
+                                });
+
+                                rooms[roomIndex].votingTimeout = setTimeout(() => {
+                                    io.to(roomName).emit("gameState", {
+                                        gameState: GameState.Idle,
+                                    });
+    
+                                    rooms[roomIndex].descriptions = [];
+                                    rooms[roomIndex].votes = [];
+    
+                                }, rooms[roomIndex].reviewTime);
+                            }, rooms[roomIndex].votingTime);
+                        }, rooms[roomIndex].describeTime);
 
                         io.to(roomName).emit("gameState", {
                             gameState: gameState,
@@ -178,22 +215,52 @@ io.on("connection", (socket) => {
                             rooms[roomIndex].gifUrl = url;
                         });
                     } else {
-                        socket.emit("error", "You are not the host.");
+                        socket.emit("error", { code: 0, message: "You are not the host." });
                     }
                 }
             }
         }
     });
 
-    socket.on("addDescription", (message) => {
+    socket.on("addDescription", (text) => {
         if (!socket.data.user) return;
 
         const { roomName, id } = socket.data.user;
         const roomIndex = getRoomIndexFromName(rooms, roomName);
 
         if (roomIndex !== -1) {
-            rooms[roomIndex].descriptions.push(message);
+            if (rooms[roomIndex].descriptions.some((d) => d.userId === id)) {
+                socket.emit("error", { code: 0, message: "Meme already described." });
+            }
+
+            const description = {
+                userId: id,
+                text: text,
+            }
+            rooms[roomIndex].descriptions.push(description);
             io.to(roomName).emit("descriptions", rooms[roomIndex].descriptions);
+        }
+    });
+
+    socket.on("vote", (payload) => {
+        if (!socket.data.user) return;
+
+        const { roomName, id } = socket.data.user;
+        const roomIndex = getRoomIndexFromName(rooms, roomName);
+
+        if (roomIndex !== -1) {
+            const { descriptionUserId } = payload;
+
+            if (rooms[roomIndex].votes.some((v) => v.userId === id)) {
+                socket.emit("error", { code: 0, message: "Vote already submitted." });
+            }
+
+            const vote: Vote = {
+                userId: id,
+                descriptionUserId: descriptionUserId,
+            }
+            rooms[roomIndex].votes.push(vote);
+            io.to(roomName).emit("votes", rooms[roomIndex].votes);
         }
     });
 });

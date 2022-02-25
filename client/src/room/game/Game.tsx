@@ -1,8 +1,9 @@
-import { ChangeEvent, FormEvent, useContext, useEffect, useRef, useState } from "react";
+import { useContext, useEffect, useState } from "react";
 import { ActionTypes, StateContext } from "../../context";
-import { Card, Col, Button, Image, Row, Spinner, Form, Stack, ListGroup } from "react-bootstrap";
+import { Card, Col, Button, Image, Row, Spinner, Stack } from "react-bootstrap";
 import "./game.css";
 import { GameState } from "../../context/types";
+import Descriptions from "./Descriptions";
 
 interface GameProps {
     roomName: string;
@@ -12,11 +13,8 @@ interface GameProps {
 function Game(props: GameProps) {
     const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
-    const [description, setDescription] = useState("");
-    const [descriptions, setDescriptions] = useState<string[]>([]);
-    const descriptionInputRef = useRef<HTMLInputElement>(null);
 
-    const { socket, isHost, dispatch, gameState } = useContext(StateContext);
+    const { socket, user, dispatch, gameState } = useContext(StateContext);
 
     useEffect(() => {
         socket.on("gif", (url) => {
@@ -24,11 +22,7 @@ function Game(props: GameProps) {
         });
 
         socket.on("gameState", (payload) => {
-            dispatch({ type: ActionTypes.SET_GAME_STATE, payload: payload.gameState });
-        });
-
-        socket.on("descriptions", (messages) => {
-            setDescriptions(messages);
+            dispatch({ type: ActionTypes.SET_GAME_STATE, gameState: payload.gameState });
         });
 
         return () => {
@@ -36,10 +30,6 @@ function Game(props: GameProps) {
             socket.off("gameState");
         }
     }, []);
-
-    useEffect(() => {
-        descriptionInputRef.current?.focus();
-    }, [descriptionInputRef]);
 
     const startGame = () => {
         socket.emit("setGameState", {
@@ -53,46 +43,19 @@ function Game(props: GameProps) {
         setLoading(false);
     }
 
-    const onDescriptionInput = (event: ChangeEvent<HTMLInputElement>) => {
-        setDescription(event.target.value);
-    }
-
-    const addDescription = (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        socket.emit("addDescription", description);
-    }
-
     const gameStateRenderer = () => {
+        console.log("gameState: ", gameState);
+
         switch(gameState) {
             case GameState.Idle:
                 return null;
-            case GameState.Describe: 
+            case GameState.Describe:
+            case GameState.Vote:
+            case GameState.Review:
                 return <Stack className="d-flex align-items-center">
                     { loading && <Spinner animation="border" className="loading position-absolute"/> }
                     { imageUrl && <Image src={imageUrl} alt={imageUrl} onLoad={onImageLoaded} className="gameImage shadow"/> }
-                    { !loading && 
-                        <>
-                            <Form onSubmit={addDescription} className="w-50">
-                                <Form.Group>
-                                    <Form.Control
-                                        className="text-center mt-4"
-                                        required
-                                        placeholder="Describe the above meme..."
-                                        onInput={onDescriptionInput}
-                                        value={description}
-                                        autoFocus
-                                        ref={descriptionInputRef}
-                                    />
-                                </Form.Group>
-                            </Form>
-                            <div className="justify-content-center d-flex">
-                                <ListGroup variant="flush" className="descriptions w-50 overflow-scroll position-absolute">
-                                    { descriptions.map((d) => <ListGroup.Item>{d}</ListGroup.Item>) }
-                                </ListGroup>
-                            </div>
-                        </>
-                    }
+                    { !loading && <Descriptions /> }
                 </Stack>;
             default:
                 return null;
@@ -108,8 +71,8 @@ function Game(props: GameProps) {
                     </Col>
                 </Row>
                 <Row>
-                    <Col>
-                        { isHost && <Button onClick={startGame}>Start game!</Button> }
+                    <Col className="w-100 d-flex justify-content-center my-4">
+                        { user?.isHost && <Button className="w-50" onClick={startGame}>Start game!</Button> }
                     </Col>
                 </Row>
             </Card>

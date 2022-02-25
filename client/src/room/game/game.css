@@ -17,3 +17,10 @@
 .descriptions::-webkit-scrollbar {
     display: none;
 }
+
+.vote {
+    right: -5%;
+    top: 50%;
+    transform: translate(0, -50%);
+    opacity: 75%;
+}

@@ -4,8 +4,9 @@ import { Action } from ".";
 
 export interface State {
     socket: Socket<ServerToClientEvents, ClientToServerEvents>;
+    user: User | undefined;
+    roomName: string | undefined;
     gameState: GameState;
-    isHost: boolean;
     dispatch: React.Dispatch<Action>;
 }
 
@@ -13,10 +14,11 @@ export enum GameState {
     Idle = "idle",
     Describe = "describe",
     Vote = "vote",
+    Review = "review",
 }
 
 export interface ServerToClientEvents {
-    error: (message: string) => void;
+    error: (payload: { code: number; message: string; }) => void;
     chatMessage: (message: string) => void;
     messages: (messages: string[]) => void;
     roomExists: (payload: { roomName: string; roomId: string; }) => void;
@@ -25,7 +27,8 @@ export interface ServerToClientEvents {
     requestName: () => void;
     gif: (url: string | undefined) => void;
     gameState: (payload: { gameState: GameState }) => void;
-    descriptions: (messages: string[]) => void;
+    descriptions: (descriptions: Description[]) => void;
+    votes: (votes: Vote[]) => void;
 }
 
 export interface ClientToServerEvents {
@@ -36,4 +39,21 @@ export interface ClientToServerEvents {
     requestGif: () => void;
     setGameState: (payload: { gameState: GameState; }) => void;
     addDescription: (message: string) => void;
+    vote: (payload: { descriptionUserId: string; }) => void;
+}
+
+export interface User {
+    id: string;
+    name: string;
+    isHost: boolean;
+}
+
+export interface Description {
+    userId: string;
+    text: string;
+}
+
+export interface Vote {
+    userId: string;
+    descriptionUserId: string;
 }

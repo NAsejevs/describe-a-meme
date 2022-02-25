@@ -1,21 +1,26 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Button, Container, Modal } from "react-bootstrap";
-import { Route, BrowserRouter, Routes } from "react-router-dom";
+import { Route, Routes, useNavigate } from "react-router-dom";
 import { StateContext } from "./context";
 import Start from "./start/Start";
 import Room from "./room/Room";
 
 function App() {
     const [showError, setShowError] = useState(false);
+    const [errorCode, setErrorCode] = useState<undefined | number>(undefined);
     const [errorMessage, setErrorMessage] = useState("");
-    const { socket } = useContext(StateContext);
+    const { socket, roomName } = useContext(StateContext);
+    const navigate = useNavigate();
 
     useEffect(() => {
         socket.connect();
 
-        socket.on("error", (message: string) => {
+        socket.on("error", (payload) => {
+            const { code, message } = payload;
+
             setShowError(true);
             setErrorMessage(message);
+            setErrorCode(code);
         });
 
         return () => {
@@ -23,6 +28,14 @@ function App() {
             socket.disconnect();
         };
     }, []);
+
+    const createRoom = () => {
+        if (roomName) {
+            setShowError(false);
+            socket.emit("createRoom", roomName);
+            navigate("/");
+        }
+    }
 
     return (
         <Container fluid="lg" className="app d-flex flex-column h-100">
@@ -32,17 +45,21 @@ function App() {
                 </Modal.Header>
                 <Modal.Body>{errorMessage}</Modal.Body>
                 <Modal.Footer>
+                    {
+                        errorCode === 1 && roomName &&
+                        <Button variant="primary" onClick={() => createRoom()}>
+                            Create Room
+                        </Button>
+                    }
                     <Button variant="secondary" onClick={() => setShowError(false)}>
                         Close
                     </Button>
                 </Modal.Footer>
             </Modal>
-            <BrowserRouter>
-                <Routes>
-                    <Route path="/" element={<Start />}/>
-                    <Route path="/:roomName" element={<Room />}/>
-                </Routes>
-            </BrowserRouter>
+            <Routes>
+                <Route path="/" element={<Start />}/>
+                <Route path="/:roomName" element={<Room />}/>
+            </Routes>
         </Container>
     );
 }
