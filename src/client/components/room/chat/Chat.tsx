@@ -1,6 +1,6 @@
 import { FormEvent, ChangeEvent, createRef, useContext, useEffect, useState } from "react";
 import "./chat.css";
-import { StateContext } from "../../context";
+import { StateContext } from "../../../context";
 import { Button, Col, Row, Form, Card, InputGroup } from "react-bootstrap";
 import { EmojiConvertor } from "emoji-js";
 

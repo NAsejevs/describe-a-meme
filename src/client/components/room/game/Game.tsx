@@ -1,8 +1,8 @@
-import { useContext, useEffect, useState } from "react";
-import { ActionTypes, StateContext } from "../../context";
+import { useContext, useEffect, useMemo, useState } from "react";
+import { ActionTypes, StateContext } from "../../../context";
 import { Card, Col, Button, Image, Row, Spinner, Stack } from "react-bootstrap";
 import "./game.css";
-import { GameState } from "../../context/types";
+import { GameState } from "../../../../shared/types";
 import Descriptions from "./Descriptions";
 
 interface GameProps {
@@ -13,6 +13,16 @@ interface GameProps {
 function Game(props: GameProps) {
     const [imageUrl, setImageUrl] = useState<string | undefined>(undefined);
     const [loading, setLoading] = useState(false);
+
+    const [counter, setCounter] = useState(0);
+    const [dependency, setDependency] = useState(false);
+    const heavyComputation = useMemo(() => {
+        for(let i = 0; i <= 1000000000; i++) {
+            if (i === 1000000000) {
+                return "hello world!";
+            }
+        }
+    }, [dependency])
 
     const { socket, user, dispatch, gameState } = useContext(StateContext);
 
@@ -64,6 +74,9 @@ function Game(props: GameProps) {
 
     return (
         <Col sm={12} md={8} className="mt-4 my-md-4 flex-grow-1">
+            Hello world!: { heavyComputation }
+            <button onClick={() => { setCounter(counter + 1); }}>Counter</button>
+            {counter}
             <Card className="h-100 shadow">
                 <Row className="h-100">
                     <Col className="d-flex justify-content-center mt-4">

@@ -11,7 +11,7 @@
     position: fixed;
     left: 0;
     right: 0;
-    background-image: url(../public/light-rays.jpg);
+    background-image: url(../../public/light-rays.jpg);
     background-size: 100%;
     background-color: rgba(0, 0, 0, 0.1);
     background-position: center;

@@ -1,7 +1,7 @@
 import { ChangeEvent, FormEvent, useContext, useEffect, useRef, useState } from "react";
-import { Badge, Form, ListGroup, NavItem } from "react-bootstrap";
-import { StateContext } from "../../context";
-import { Description, GameState, Vote } from "../../context/types";
+import { Badge, Form, ListGroup } from "react-bootstrap";
+import { StateContext } from "../../../context";
+import { Description, GameState, Vote } from "../../../../shared/types";
 
 function Descriptions() {
     const [description, setDescription] = useState("");

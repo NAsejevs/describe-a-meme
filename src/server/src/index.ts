@@ -1,7 +1,8 @@
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { generateGifUrl, getRoomIndexFromName, getUserIndexFromId, isRoomHost } from "./utils";
-import { ClientToServerEvents, GameState, Room , ServerToClientEvents, SocketData, User, Vote } from "./types";
+import { ClientToServerEvents, GameState ,ServerToClientEvents, SocketData, User, Vote } from "../../shared/types";
+import { Room } from "./types";
 import crypto from "crypto";
 import { DefaultEventsMap } from "socket.io/dist/typed-events";
 
@@ -73,6 +74,7 @@ io.on("connection", (socket) => {
                 id: crypto.randomBytes(4).toString("hex"),
                 name: userName,
                 roomName: roomName,
+                isHost: !rooms[roomIndex].host,
             }
 
             if (userId) {
@@ -94,10 +96,6 @@ io.on("connection", (socket) => {
             rooms[roomIndex].users.push(user);
             const userIndex = rooms[roomIndex].users.length - 1;
             socket.data.user = rooms[roomIndex].users[userIndex];
-
-            if (!rooms[roomIndex].host) {
-                rooms[roomIndex].host = user.id;
-            }
 
             socket.join(roomName);
 

@@ -1,7 +1,7 @@
 import React, { useState, useContext, useEffect } from "react";
 import { Button, Container, Modal } from "react-bootstrap";
 import { Route, Routes, useNavigate } from "react-router-dom";
-import { StateContext } from "./context";
+import { StateContext } from "../context";
 import Start from "./start/Start";
 import Room from "./room/Room";
 

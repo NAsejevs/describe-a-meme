@@ -1,22 +1,3 @@
-import React from "react";
-import { Socket } from "socket.io-client";
-import { Action } from ".";
-
-export interface State {
-    socket: Socket<ServerToClientEvents, ClientToServerEvents>;
-    user: User | undefined;
-    roomName: string | undefined;
-    gameState: GameState;
-    dispatch: React.Dispatch<Action>;
-}
-
-export enum GameState {
-    Idle = "idle",
-    Describe = "describe",
-    Vote = "vote",
-    Review = "review",
-}
-
 export interface ServerToClientEvents {
     error: (payload: { code: number; message: string; }) => void;
     chatMessage: (message: string) => void;
@@ -42,9 +23,21 @@ export interface ClientToServerEvents {
     vote: (payload: { descriptionUserId: string; }) => void;
 }
 
+export interface SocketData {
+    user: User;
+}
+
+export enum GameState {
+    Idle = "idle",
+    Describe = "describe",
+    Vote = "vote",
+    Review = "review",
+}
+
 export interface User {
     id: string;
     name: string;
+    roomName: string;
     isHost: boolean;
 }
 

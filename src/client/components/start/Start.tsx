@@ -1,7 +1,7 @@
 import { ChangeEvent, createRef, useContext, useEffect, useState } from "react";
 import { Col, Row, Button, Form } from "react-bootstrap";
 import { useNavigate } from "react-router-dom";
-import { StateContext } from "../context";
+import { StateContext } from "../../context";
 import { LocationState } from "../room/types";
 import "./start.css";
 

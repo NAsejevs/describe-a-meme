@@ -13,14 +13,17 @@
     "strict": true,
     "forceConsistentCasingInFileNames": true,
     "noFallthroughCasesInSwitch": true,
-    "module": "CommonJS",
+    "module": "esnext",
     "moduleResolution": "node",
     "resolveJsonModule": true,
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx"
   },
+  "exclude": [
+    "src/server"
+  ],
   "include": [
-    "src"
+    "src/client", "src/index.tsx",
   ]
 }

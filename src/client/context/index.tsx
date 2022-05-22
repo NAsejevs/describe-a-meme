@@ -1,6 +1,7 @@
 import React, { useReducer } from "react";
 import { io } from "socket.io-client";
-import { GameState, State, User } from "./types";
+import { GameState, User } from "../../shared/types";
+import { State } from "./types";
 
 export const defaultState: State = {
     socket: io("ws://localhost:3001", {

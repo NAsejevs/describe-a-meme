@@ -2,7 +2,7 @@ import { useContext, useEffect, useState } from "react";
 import { Row } from "react-bootstrap";
 import { useCookies } from "react-cookie";
 import { useLocation, useParams } from "react-router-dom";
-import { ActionTypes, StateContext } from "../context";
+import { ActionTypes, StateContext } from "../../context";
 import Chat from "./chat/Chat";
 import Game from "./game/Game";
 import { LocationState } from "./types";
@@ -50,6 +50,7 @@ function Room() {
             dispatch({ type: ActionTypes.SET_USER, user: {
                 id: userId,
                 name: userName,
+                roomName: roomName,
                 isHost: isHost
             }});
         });

@@ -1,5 +1,6 @@
 import axios from "axios";
-import { Room, User } from "./types";
+import { User } from "../../shared/types";
+import { Room } from "./types";
 
 export const getRoomIndexFromName = (rooms: Room[], name: string) => {
     return rooms.findIndex((room) => room.name === name);
